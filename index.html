@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResQHub - Disaster Management Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .notification { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        .shelter-card:hover { transform: translateY(-5px); transition: transform 0.3s; }
+        .quiz-option:hover { background-color: #E5E7EB; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="#" class="text-2xl font-bold">ResQHub</a>
+                    <div class="hidden md:flex space-x-4">
+                        <a href="#home" class="hover:text-blue-200">Home</a>
+                        <a href="#training" class="hover:text-blue-200">Training</a>
+                        <a href="#blog" class="hover:text-blue-200">Blog</a>
+                        <a href="#shelters" class="hover:text-blue-200">Find Shelter</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="reportIncident" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg">
+                        Report Incident
+                    </button>
+                    <button id="loginBtn" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg">
+                        Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Jumbotron -->
+    <div class="bg-gradient-to-r from-blue-500 to-blue-700 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h1 class="text-4xl font-bold mb-4">Emergency Response System</h1>
+                    <p class="text-xl mb-6">Real-time disaster management and community support</p>
+                    <div id="liveIncidents" class="bg-white bg-opacity-20 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-2">Latest Incidents</h3>
+                        <div id="incidentsFeed" class="space-y-2">
+                            <!-- Incidents will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white bg-opacity-20 p-6 rounded-lg text-center">
+                        <i class="bi bi-people-fill text-3xl"></i>
+                        <h4 class="mt-2">Active Volunteers</h4>
+                        <p class="text-2xl font-bold" id="volunteerCount">0</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-6 rounded-lg text-center">
+                        <i class="bi bi-house-check-fill text-3xl"></i>
+                        <h4 class="mt-2">Available Shelters</h4>
+                        <p class="text-2xl font-bold" id="shelterCount">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Training Section -->
+        <section id="training" class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Disaster Preparedness Training</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4">Interactive Quiz</h3>
+                    <div id="quizContainer" class="space-y-4">
+                        <div id="quizQuestion" class="font-medium"></div>
+                        <div id="quizOptions" class="space-y-2"></div>
+                        <button id="nextQuestion" class="bg-blue-600 text-white px-4 py-2 rounded-lg hidden">
+                            Next Question
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4">Emergency Contacts</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span>Emergency Hotline</span>
+                            <a href="tel:911" class="text-blue-600">911</a>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Medical Emergency</span>
+                            <a href="tel:108" class="text-blue-600">108</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shelter Finder -->
+        <section id="shelters" class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Find Nearby Shelters</h2>
+            <div class="grid md:grid-cols-3 gap-6" id="shelterList">
+                <!-- Shelters will be populated here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Incident Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Report an Incident</h3>
+            <form id="incidentForm" class="space-y-4">
+                <div>
+                    <label class="block mb-1">Type of Incident</label>
+                    <select class="w-full p-2 border rounded" required>
+                        <option value="">Select type</option>
+                        <option value="flood">Flood</option>
+                        <option value="fire">Fire</option>
+                        <option value="earthquake">Earthquake</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1">Location</label>
+                    <input type="text" class="w-full p-2 border rounded" required>
+                </div>
+                <div>
+                    <label class="block mb-1">Description</label>
+                    <textarea class="w-full p-2 border rounded" rows="3" required></textarea>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase Client
+        const supabaseUrl = 'YOUR_SUPABASE_URL'
+        const supabaseKey = 'YOUR_SUPABASE_KEY'
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+        // Quiz Data
+        const quizData = [
+            {
+                question: "What should you do first in case of an earthquake?",
+                options: ["Run outside", "Drop, Cover, and Hold On", "Call emergency services", "Stand in a doorway"],
+                correct: 1
+            },
+            {
+                question: "Which item is NOT essential in an emergency kit?",
+                options: ["Water", "Television", "First aid supplies", "Non-perishable food"],
+                correct: 1
+            }
+        ]
+
+        let currentQuestion = 0
+        let score = 0
+
+        // Initialize Quiz
+        function initQuiz() {
+            const questionEl = document.getElementById('quizQuestion')
+            const optionsEl = document.getElementById('quizOptions')
+            
+            if (currentQuestion < quizData.length) {
+                const question = quizData[currentQuestion]
+                questionEl.textContent = question.question
+                optionsEl.innerHTML = ''
+                
+                question.options.forEach((option, index) => {
+                    const button = document.createElement('button')
+                    button.className = 'w-full p-3 text-left quiz-option rounded border hover:bg-gray-100'
+                    button.textContent = option
+                    button.onclick = () => checkAnswer(index)
+                    optionsEl.appendChild(button)
+                })
+            } else {
+                questionEl.textContent = `Quiz completed! Score: ${score}/${quizData.length}`
+                optionsEl.innerHTML = ''
+                document.getElementById('nextQuestion').style.display = 'none'
+            }
+        }
+
+        function checkAnswer(selected) {
+            const correct = quizData[currentQuestion].correct
+            if (selected === correct) score++
+            document.getElementById('nextQuestion').style.display = 'block'
+        }
+
+        // Modal Functions
+        function openModal() {
+            document.getElementById('reportModal').style.display = 'flex'
+        }
+
+        function closeModal() {
+            document.getElementById('reportModal').style.display = 'none'
+        }
+
+        // Event Listeners
+        document.getElementById('reportIncident').addEventListener('click', openModal)
+        document.getElementById('nextQuestion').addEventListener('click', () => {
+            currentQuestion++
+            initQuiz()
+        })
+
+        document.getElementById('incidentForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+            // Handle form submission to Supabase
+            closeModal()
+        })
+
+        // Initialize Components
+        initQuiz()
+
+        // Simulated Data
+        const shelters = [
+            { name: "Community Center", capacity: "50", available: "35", address: "123 Main St" },
+            { name: "High School Gym", capacity: "100", available: "72", address: "456 Oak Ave" },
+            { name: "Recreation Center", capacity: "75", available: "45", address: "789 Pine Rd" }
+        ]
+
+        // Populate Shelter List
+        const shelterList = document.getElementById('shelterList')
+        shelters.forEach(shelter => {
+            shelterList.innerHTML += `
+                <div class="bg-white p-6 rounded-lg shadow-md shelter-card">
+                    <h3 class="font-semibold mb-2">${shelter.name}</h3>
+                    <p class="text-gray-600 mb-2">${shelter.address}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm">Available: ${shelter.available}/${shelter.capacity}</span>
+                        <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                            Details
+                        </button>
+                    </div>
+                </div>
+            `
+        })
+
+        // Update counts
+        document.getElementById('volunteerCount').textContent = '157'
+        document.getElementById('shelterCount').textContent = shelters.length
+
+        // Enable push notifications
+        if ('Notification' in window) {
+            Notification.requestPermission()
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
